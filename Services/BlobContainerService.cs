@@ -12,19 +12,23 @@ namespace TranslatorAPI.Services
         // Target Container
         private static string _targetName = "target-container";
 
-        public static async Task<string> UploadSourceDocument(IFormFile document, string userId) { 
+        public static async Task<Uri> UploadSourceDocument(IFormFile document, string userId) { 
             BlobContainerClient blobContainerClient = 
                 new BlobContainerClient(_connectionString, _sourceName);
+
+            Uri documentUri;
 
             using(var stream = new MemoryStream())
             {
                 await document.CopyToAsync(stream);
                 stream.Position = 0;
-                await blobContainerClient
-                    .UploadBlobAsync($"{userId}/{document.FileName}", stream);
+
+                BlobClient blobClient = blobContainerClient.GetBlobClient($"{userId}/{document.FileName}");
+                await blobClient.UploadAsync(stream, overwrite: true);
+
+                documentUri = blobClient.Uri;
             }
 
-            var documentUri = $"{blobContainerClient.Uri}/{document.FileName}";
             return documentUri;
         }
 

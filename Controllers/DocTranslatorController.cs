@@ -9,10 +9,10 @@ namespace TranslatorAPI.Controllers
     public class DocTranslatorController : ControllerBase
     {
         [HttpPost]
-        public async Task<string> Test(IList<IFormFile> files)
+        public async Task<Uri> Test(IFormFile document)
         {
             return await BlobContainerService
-                .UploadSourceDocument(files[0], "test");
+                .UploadSourceDocument(document, "test");
         }
     }
 }
