@@ -4,13 +4,15 @@ namespace TranslatorAPI.Services
 {
     public abstract class BlobContainerService
     {
-        private static string _connectionString = "DefaultEndpointsProtocol=https;AccountName=documentsblob;AccountKey=AQTIyu84QoMX5YNP+lecZXdRaIu+DzseH0ZouXSR79KNmstzvsSvCbOtA48yTR/k4B20MHgH46Ep+AStUH4qDQ==;EndpointSuffix=core.windows.net";
+        private static readonly string _connectionString = "DefaultEndpointsProtocol=https;AccountName=documentsblob;AccountKey=AQTIyu84QoMX5YNP+lecZXdRaIu+DzseH0ZouXSR79KNmstzvsSvCbOtA48yTR/k4B20MHgH46Ep+AStUH4qDQ==;EndpointSuffix=core.windows.net";
         
         // Source Container
-        private static string _sourceName = "source-container";
+        private static readonly string _sourceName = "source-container";
+        static readonly string sourceToken = "sp=rl&st=2022-09-12T21:24:36Z&se=2022-09-27T05:24:36Z&sv=2021-06-08&sr=c&sig=rlirpQx8OwDCaIniFTU88xe1CgIji1PEMXJeX7KFB1A%3D";
 
         // Target Container
-        private static string _targetName = "target-container";
+        private static readonly string _targetName = "target-container";
+        static readonly string targetToken = "sp=wl&st=2022-09-12T21:39:01Z&se=2022-09-27T05:39:01Z&sv=2021-06-08&sr=c&sig=xptoMUu65AM17dz0g%2FiumyaEUiFOeyxLofWopTpxuHM%3D";
 
         public static async Task<Uri> UploadSourceDocument(IFormFile document, string userId) { 
             BlobContainerClient blobContainerClient = 
