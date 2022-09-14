@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using TranslatorAPI.Models;
 using TranslatorAPI.Services;
 
 namespace TranslatorAPI.Controllers
@@ -9,7 +10,7 @@ namespace TranslatorAPI.Controllers
     public class DocTranslatorController : ControllerBase
     {
         [HttpPost]
-        public async Task<Uri> Test(IFormFile document)
+        public async Task<BlobContainerResponse> Test(IFormFile document)
         {
             return await BlobContainerService
                 .UploadSourceDocument(document, "test");
