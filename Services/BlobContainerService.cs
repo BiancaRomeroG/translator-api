@@ -39,13 +39,12 @@ namespace TranslatorAPI.Services
             return await blobClient.DeleteIfExistsAsync();
         }
 
-        public static async Task<List<BlobResponse>> GetTargetDocuments(string userId)
+        public static List<BlobResponse> GetTargetDocuments(string userId)
         {
             BlobContainerClient blobContainerClient =
                 new(_connectionString, _targetName);
 
-            List<string> blobNames = await blobContainerClient.GetBlobsAsync(prefix: userId)
-                .Select(b => b.Name).ToList();
+            List<string> blobNames = blobContainerClient.GetBlobs(prefix: userId).Select(b => b.Name).ToList();
 
             List<BlobResponse> documents = new();
             foreach (string blobName in blobNames)
