@@ -6,14 +6,15 @@ namespace TranslatorAPI.Services
     public abstract class BlobContainerService
     {
         static readonly string _connectionString = "DefaultEndpointsProtocol=https;AccountName=documentsblob;AccountKey=AQTIyu84QoMX5YNP+lecZXdRaIu+DzseH0ZouXSR79KNmstzvsSvCbOtA48yTR/k4B20MHgH46Ep+AStUH4qDQ==;EndpointSuffix=core.windows.net";
-        
+
         // Source Container
         static readonly string _sourceName = "source-container";
         // Target Container
         static readonly string _targetName = "target-container";
 
-        public static async Task<BlobResponse> UploadSourceDocument(IFormFile document, string userId) { 
-            BlobContainerClient blobContainerClient = 
+        public static async Task<BlobResponse> UploadSourceDocument(IFormFile document, string userId)
+        {
+            BlobContainerClient blobContainerClient =
                 new(_connectionString, _sourceName);
 
             using var stream = new MemoryStream();
@@ -36,6 +37,26 @@ namespace TranslatorAPI.Services
 
             BlobClient blobClient = blobContainerClient.GetBlobClient(documentName);
             return await blobClient.DeleteIfExistsAsync();
+        }
+
+        public static async Task<List<BlobResponse>> GetTargetDocuments(string userId)
+        {
+            BlobContainerClient blobContainerClient =
+                new(_connectionString, _targetName);
+
+            List<string> blobNames = await blobContainerClient.GetBlobsAsync(prefix: userId)
+                .Select(b => b.Name).ToList();
+
+            List<BlobResponse> documents = new();
+            foreach (string blobName in blobNames)
+            {
+                documents.Add(new BlobResponse()
+                {
+                    DocumentUrl = new Uri($"{blobContainerClient.Uri}/{blobName}")
+                });
+            }
+            
+            return documents;
         }
 
     }
