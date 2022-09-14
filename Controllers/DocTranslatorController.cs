@@ -10,10 +10,18 @@ namespace TranslatorAPI.Controllers
     public class DocTranslatorController : ControllerBase
     {
         [HttpPost]
-        public async Task<BlobContainerResponse> Test(IFormFile document)
+        public async Task<TranslatorResponse> Test(IFormFile document, string userId, string lang)
         {
-            return await BlobContainerService
-                .UploadSourceDocument(document, "test");
+            if (document == null || string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(lang))
+            {
+                return new TranslatorResponse()
+                {
+                    Success = false,
+                };
+            }
+            var sourceBlob = await BlobContainerService.UploadSourceDocument(document, userId);
+
+            return await AITranslatorService.TranslateDocumentAsync(sourceBlob.DocumentUrl!, lang);
         }
     }
 }

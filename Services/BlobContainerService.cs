@@ -29,5 +29,14 @@ namespace TranslatorAPI.Services
             };
         }
 
+        public static async Task<bool> DeleteDocument(string containerName, string documentName)
+        {
+            BlobContainerClient blobContainerClient =
+                new(_connectionString, containerName);
+
+            BlobClient blobClient = blobContainerClient.GetBlobClient(documentName);
+            return await blobClient.DeleteIfExistsAsync();
+        }
+
     }
 }

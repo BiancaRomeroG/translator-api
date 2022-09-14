@@ -1,5 +1,10 @@
 ﻿using Microsoft.AspNetCore.Components.Forms;
+using Microsoft.AspNetCore.DataProtection.KeyManagement;
+using Microsoft.AspNetCore.Routing;
+using Newtonsoft.Json;
+using System;
 using System.Runtime.CompilerServices;
+using System.Text;
 using TranslatorAPI.Models;
 
 namespace TranslatorAPI.Services
@@ -16,30 +21,87 @@ namespace TranslatorAPI.Services
         static readonly string _targetName = "target-container";
         static readonly string _targetToken = "sp=wl&st=2022-09-12T21:39:01Z&se=2022-09-27T05:39:01Z&sv=2021-06-08&sr=c&sig=xptoMUu65AM17dz0g%2FiumyaEUiFOeyxLofWopTpxuHM%3D";
 
-        public TranslatorResponse TranslateDocument(Uri sourceUrl, string lang)
+        public static async Task<TranslatorResponse> TranslateDocumentAsync(Uri sourceUrl, string lang)
         {
             string targetUrl = sourceUrl.ToString().Replace(_sourceName, _targetName)
                 .Insert(sourceUrl.ToString().LastIndexOf("."), $"-{lang}");
 
-            //string json = generateJson(sourceUrl, _sourceToken, targetUrl, _targetToken, lang);
+            // Delete if exists
+            string documentName = targetUrl.Substring(targetUrl.IndexOf(_targetName))
+                        .Replace($"{_targetName}/", "");
+            await BlobContainerService.DeleteDocument(_targetName, documentName);
+
+            string json = GenerateJson(sourceUrl.ToString(), targetUrl, lang);
+            
+            using HttpClient client = new();
+            using HttpRequestMessage request = new();
+            {
+                StringContent content = new(json, Encoding.UTF8, "application/json");
+
+                request.Method = HttpMethod.Post;
+                request.RequestUri = new Uri(_endpoint);
+                request.Headers.Add("Ocp-Apim-Subscription-Key", _key);
+                request.Content = content;
+
+                HttpResponseMessage response = await client.SendAsync(request);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    return new TranslatorResponse()
+                    {
+                        Success = false
+                    };
+
+                }
+
+                string operationLocation = response.Headers.GetValues("Operation-Location").FirstOrDefault()!;
+
+                bool finished = false;
+                while (!finished)
+                {
+                    finished = await IsTranslated(operationLocation);
+                    await Task.Delay(2000);
+                }
+            }
+
             return new TranslatorResponse()
             {
                 SourceUrl = sourceUrl,
-                TargetUrl = new Uri(targetUrl)
+                TargetUrl = new Uri(targetUrl),
             };
         }
 
-        private string GenerateJson(string sourceUrl, string sourceToken, string targetUrl, string targetToken, string lang)
+        private static string GenerateJson(string sourceUrl, string targetUrl, string lang)
         {
             string storageType = $"\"storageType\": \"File\",";
 
-            string source = $"\"source\": {{\"sourceUrl\": \"{sourceUrl}?{sourceToken}\"}},";
+            string source = $"\"source\": {{\"sourceUrl\": \"{sourceUrl}?{_sourceToken}\"}},";
 
-            string newTargetUrl = $"\"targetUrl\": \"{targetUrl}?{targetToken}\",";
+            string newTargetUrl = $"\"targetUrl\": \"{targetUrl}?{_targetToken}\",";
             string language = $"\"language\": \"{lang}\"";
-            string targets = $"\"targets\": [{{{newTargetUrl},{language}}}]";
+            string targets = $"\"targets\": [{{{newTargetUrl}{language}}}]";
 
             return $"{{\"inputs\": [{{{storageType}{source}{targets}}}]}}";
+        }
+
+        private static async Task<bool> IsTranslated(string endpoint) 
+        {
+            HttpClient client = new HttpClient();
+            using HttpRequestMessage request = new HttpRequestMessage();
+            {
+                request.Method = HttpMethod.Get;
+                request.RequestUri = new Uri(endpoint);
+                request.Headers.Add("Ocp-Apim-Subscription-Key", _key);
+
+                HttpResponseMessage response = await client.SendAsync(request);
+                string result = response.Content.ReadAsStringAsync().Result;
+
+                var resultObj  = JsonConvert.DeserializeObject<dynamic>(result);
+
+                Console.WriteLine(resultObj!.status);
+
+                return resultObj!.status == "Succeeded";
+            }
         }
     }
 }
