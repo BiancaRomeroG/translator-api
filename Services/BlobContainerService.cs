@@ -1,21 +1,15 @@
 ﻿using Azure.Storage.Blobs;
 using TranslatorAPI.Models;
+using TranslatorAPI.Shared;
 
 namespace TranslatorAPI.Services
 {
-    public abstract class BlobContainerService
+    public static class BlobContainerService
     {
-        static readonly string _connectionString = "DefaultEndpointsProtocol=https;AccountName=documentsblob;AccountKey=AQTIyu84QoMX5YNP+lecZXdRaIu+DzseH0ZouXSR79KNmstzvsSvCbOtA48yTR/k4B20MHgH46Ep+AStUH4qDQ==;EndpointSuffix=core.windows.net";
-
-        // Source Container
-        static readonly string _sourceName = "source-container";
-        // Target Container
-        static readonly string _targetName = "target-container";
-
         public static async Task<BlobResponse> UploadSourceDocument(IFormFile document, string userId)
         {
             BlobContainerClient blobContainerClient =
-                new(_connectionString, _sourceName);
+                new(Constants.STORAGEACOUNT_CONNSTRING, Constants.SOURCE_CONTAINERNAME);
 
             using var stream = new MemoryStream();
             await document.CopyToAsync(stream);
@@ -33,7 +27,7 @@ namespace TranslatorAPI.Services
         public static async Task<bool> DeleteDocument(string containerName, string documentName)
         {
             BlobContainerClient blobContainerClient =
-                new(_connectionString, containerName);
+                new(Constants.STORAGEACOUNT_CONNSTRING, containerName);
 
             BlobClient blobClient = blobContainerClient.GetBlobClient(documentName);
             return await blobClient.DeleteIfExistsAsync();
@@ -42,7 +36,7 @@ namespace TranslatorAPI.Services
         public static List<BlobResponse> GetTargetDocuments(string userId)
         {
             BlobContainerClient blobContainerClient =
-                new(_connectionString, _targetName);
+                new(Constants.STORAGEACOUNT_CONNSTRING, Constants.TARGET_CONTAINERNAME);
 
             List<string> blobNames = blobContainerClient.GetBlobs(prefix: userId).Select(b => b.Name).ToList();
 
@@ -54,7 +48,7 @@ namespace TranslatorAPI.Services
                     DocumentUrl = new Uri($"{blobContainerClient.Uri}/{blobName}")
                 });
             }
-            
+
             return documents;
         }
 
